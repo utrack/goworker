@@ -28,6 +28,7 @@ func Init(set PoolPrefs) error {
 		return err
 	}
 
+	setDefaults(&set)
 	ctx = context.Background()
 
 	pool = newRedisPool(set.Redis, set.MaxConns, set.MaxConns, time.Minute)
