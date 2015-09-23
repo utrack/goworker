@@ -39,6 +39,7 @@ func Init(set PoolPrefs) error {
 // setDefaults fills in the blanks in PoolPrefs
 // with default values.
 func setDefaults(sets *PoolPrefs) {
+	// Set defaults
 	if sets.Concurrency == 0 {
 		sets.Concurrency = 25
 	}
@@ -53,6 +54,14 @@ func setDefaults(sets *PoolPrefs) {
 	}
 	if sets.SleepInterval == 0 {
 		sets.SleepInterval = 5.0
+	}
+
+	// Add registered queues to the list.
+	if sets.UseRegistered {
+		sets.Queues = make([]string, 0, len(workers))
+		for key, _ := range workers {
+			sets.Queues = append(sets.Queues, key)
+		}
 	}
 }
 

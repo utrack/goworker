@@ -3,6 +3,8 @@ package goworker
 type PoolPrefs struct {
 	// Queues is a list of Resque queues to scan.
 	Queues []string
+	// UseRegistered shows if registered jobs should be used as queues.
+	UseRegistered bool
 	// IsStrict shows if queue names are specified in strict format.
 	IsStrict bool
 
