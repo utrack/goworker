@@ -1,13 +1,14 @@
 package goworker
 
 import (
-	"github.com/youtube/vitess/go/pools"
-	"github.com/cihub/seelog"
-	"golang.org/x/net/context"
 	"os"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/cihub/seelog"
+	"github.com/youtube/vitess/go/pools"
+	"golang.org/x/net/context"
 )
 
 var (
@@ -20,21 +21,38 @@ var (
 // called by the Work function, but may be used by programs
 // that wish to access goworker functions and configuration
 // without actually processing jobs.
-func Init() error {
+func Init(set PoolPrefs) error {
 	var err error
 	logger, err = seelog.LoggerFromWriterWithMinLevel(os.Stdout, seelog.InfoLvl)
 	if err != nil {
 		return err
 	}
 
-	if err := flags(); err != nil {
-		return err
-	}
 	ctx = context.Background()
 
-	pool = newRedisPool(uri, connections, connections, time.Minute)
+	pool = newRedisPool(set.Redis, set.MaxConns, set.MaxConns, time.Minute)
 
 	return nil
+}
+
+// setDefaults fills in the blanks in PoolPrefs
+// with default values.
+func setDefaults(sets *PoolPrefs) {
+	if sets.Concurrency == 0 {
+		sets.Concurrency = 25
+	}
+	if sets.MaxConns == 0 {
+		sets.MaxConns = 2
+	}
+	if sets.Redis == "" {
+		sets.Redis = "redis://localhost:6379/"
+	}
+	if sets.RedisNamespace == "" {
+		sets.RedisNamespace = "resque:"
+	}
+	if sets.SleepInterval == 0 {
+		sets.SleepInterval = 5.0
+	}
 }
 
 // GetConn returns a connection from the goworker Redis
@@ -80,8 +98,8 @@ func Close() {
 // and will run until a QUIT, INT, or TERM signal is
 // received, or until the queues are empty if the
 // -exit-on-complete flag is set.
-func Work() error {
-	err := Init()
+func Work(set PoolPrefs) error {
+	err := Init(set)
 	if err != nil {
 		return err
 	}
@@ -89,16 +107,16 @@ func Work() error {
 
 	quit := signals()
 
-	poller, err := newPoller(queues, isStrict)
+	poller, err := newPoller(set)
 	if err != nil {
 		return err
 	}
-	jobs := poller.poll(time.Duration(interval), quit)
+	jobs := poller.poll(time.Duration(set.SleepInterval), quit)
 
 	var monitor sync.WaitGroup
 
-	for id := 0; id < concurrency; id++ {
-		worker, err := newWorker(strconv.Itoa(id), queues)
+	for id := 0; id < set.Concurrency; id++ {
+		worker, err := newWorker(strconv.Itoa(id), set)
 		if err != nil {
 			return err
 		}

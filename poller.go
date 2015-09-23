@@ -9,25 +9,25 @@ import (
 
 type poller struct {
 	process
-	isStrict bool
+	set PoolPrefs
 }
 
-func newPoller(queues []string, isStrict bool) (*poller, error) {
-	process, err := newProcess("poller", queues)
+func newPoller(set PoolPrefs) (*poller, error) {
+	process, err := newProcess("poller", set)
 	if err != nil {
 		return nil, err
 	}
 	return &poller{
-		process:  *process,
-		isStrict: isStrict,
+		process: *process,
+		set:     set,
 	}, nil
 }
 
 func (p *poller) getJob(conn *RedisConn) (*job, error) {
-	for _, queue := range p.queues(p.isStrict) {
+	for _, queue := range p.queues(p.set.IsStrict) {
 		logger.Debugf("Checking %s", queue)
 
-		reply, err := conn.Do("LPOP", fmt.Sprintf("%squeue:%s", namespace, queue))
+		reply, err := conn.Do("LPOP", fmt.Sprintf("%squeue:%s", p.set.RedisNamespace, queue))
 		if err != nil {
 			return nil, err
 		}
@@ -37,7 +37,7 @@ func (p *poller) getJob(conn *RedisConn) (*job, error) {
 			job := &job{Queue: queue}
 
 			decoder := json.NewDecoder(bytes.NewReader(reply.([]byte)))
-			if useNumber {
+			if p.set.UseNumber {
 				decoder.UseNumber()
 			}
 
@@ -98,7 +98,7 @@ func (p *poller) poll(interval time.Duration, quit <-chan bool) <-chan *job {
 					return
 				}
 				if job != nil {
-					conn.Send("INCR", fmt.Sprintf("%sstat:processed:%v", namespace, p))
+					conn.Send("INCR", fmt.Sprintf("%sstat:processed:%v", p.set.RedisNamespace, p))
 					conn.Flush()
 					PutConn(conn)
 					select {
@@ -115,13 +115,13 @@ func (p *poller) poll(interval time.Duration, quit <-chan bool) <-chan *job {
 							return
 						}
 
-						conn.Send("LPUSH", fmt.Sprintf("%squeue:%s", namespace, job.Queue), buf)
+						conn.Send("LPUSH", fmt.Sprintf("%squeue:%s", p.set.RedisNamespace, job.Queue), buf)
 						conn.Flush()
 						return
 					}
 				} else {
 					PutConn(conn)
-					if exitOnComplete {
+					if p.set.ExitOnComplete {
 						return
 					}
 					logger.Debugf("Sleeping for %v", interval)

@@ -13,9 +13,10 @@ type process struct {
 	Pid      int
 	ID       string
 	Queues   []string
+	set      PoolPrefs
 }
 
-func newProcess(id string, queues []string) (*process, error) {
+func newProcess(id string, sets PoolPrefs) (*process, error) {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return nil, err
@@ -25,7 +26,8 @@ func newProcess(id string, queues []string) (*process, error) {
 		Hostname: hostname,
 		Pid:      os.Getpid(),
 		ID:       id,
-		Queues:   queues,
+		Queues:   sets.Queues,
+		set:      sets,
 	}, nil
 }
 
@@ -34,9 +36,9 @@ func (p *process) String() string {
 }
 
 func (p *process) open(conn *RedisConn) error {
-	conn.Send("SADD", fmt.Sprintf("%sworkers", namespace), p)
-	conn.Send("SET", fmt.Sprintf("%sstat:processed:%v", namespace, p), "0")
-	conn.Send("SET", fmt.Sprintf("%sstat:failed:%v", namespace, p), "0")
+	conn.Send("SADD", fmt.Sprintf("%sworkers", p.set.RedisNamespace), p)
+	conn.Send("SET", fmt.Sprintf("%sstat:processed:%v", p.set.RedisNamespace, p), "0")
+	conn.Send("SET", fmt.Sprintf("%sstat:failed:%v", p.set.RedisNamespace, p), "0")
 	conn.Flush()
 
 	return nil
@@ -44,32 +46,32 @@ func (p *process) open(conn *RedisConn) error {
 
 func (p *process) close(conn *RedisConn) error {
 	logger.Infof("%v shutdown", p)
-	conn.Send("SREM", fmt.Sprintf("%sworkers", namespace), p)
-	conn.Send("DEL", fmt.Sprintf("%sstat:processed:%s", namespace, p))
-	conn.Send("DEL", fmt.Sprintf("%sstat:failed:%s", namespace, p))
+	conn.Send("SREM", fmt.Sprintf("%sworkers", p.set.RedisNamespace), p)
+	conn.Send("DEL", fmt.Sprintf("%sstat:processed:%s", p.set.RedisNamespace, p))
+	conn.Send("DEL", fmt.Sprintf("%sstat:failed:%s", p.set.RedisNamespace, p))
 	conn.Flush()
 
 	return nil
 }
 
 func (p *process) start(conn *RedisConn) error {
-	conn.Send("SET", fmt.Sprintf("%sworker:%s:started", namespace, p), time.Now().String())
+	conn.Send("SET", fmt.Sprintf("%sworker:%s:started", p.set.RedisNamespace, p), time.Now().String())
 	conn.Flush()
 
 	return nil
 }
 
 func (p *process) finish(conn *RedisConn) error {
-	conn.Send("DEL", fmt.Sprintf("%sworker:%s", namespace, p))
-	conn.Send("DEL", fmt.Sprintf("%sworker:%s:started", namespace, p))
+	conn.Send("DEL", fmt.Sprintf("%sworker:%s", p.set.RedisNamespace, p))
+	conn.Send("DEL", fmt.Sprintf("%sworker:%s:started", p.set.RedisNamespace, p))
 	conn.Flush()
 
 	return nil
 }
 
 func (p *process) fail(conn *RedisConn) error {
-	conn.Send("INCR", fmt.Sprintf("%sstat:failed", namespace))
-	conn.Send("INCR", fmt.Sprintf("%sstat:failed:%s", namespace, p))
+	conn.Send("INCR", fmt.Sprintf("%sstat:failed", p.set.RedisNamespace))
+	conn.Send("INCR", fmt.Sprintf("%sstat:failed:%s", p.set.RedisNamespace, p))
 	conn.Flush()
 
 	return nil
