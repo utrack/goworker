@@ -47,7 +47,7 @@ func setDefaults(sets *PoolPrefs) {
 		sets.MaxConns = 2
 	}
 	if sets.Redis == "" {
-		sets.Redis = "redis://localhost:6379/"
+		sets.Redis = "redis://localhost:6379/1"
 	}
 	if sets.RedisNamespace == "" {
 		sets.RedisNamespace = "resque:"
