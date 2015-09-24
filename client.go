@@ -1,5 +1,7 @@
 package goworker
 
+//go:generate ffjson $GOFILE
+
 import (
 	"fmt"
 
@@ -11,6 +13,11 @@ import (
 type Client struct {
 	pool   *redis.Pool
 	prefix string
+}
+
+type backJob struct {
+	Class string        `json:"class"`
+	Args  []interface{} `json:"args"`
 }
 
 // NewClient initiates and returns the Client.
@@ -25,8 +32,8 @@ func NewClientFromPrefs(pool *redis.Pool, prefs PoolPrefs) *Client {
 }
 
 // Enqueue adds job to the queue.
-func (c *Client) Enqueue(queue string, data interface{}) error {
-	buf, err := ffjson.Marshal(data)
+func (c *Client) Enqueue(queue string, data ...interface{}) error {
+	buf, err := ffjson.Marshal(backJob{Class: queue, Args: data})
 	if err != nil {
 		return err
 	}
