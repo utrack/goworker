@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/cihub/seelog"
 	"github.com/youtube/vitess/go/pools"
 	"golang.org/x/net/context"
@@ -114,7 +113,6 @@ func Work(set PoolPrefs) error {
 	if err != nil {
 		return err
 	}
-	logrus.Info(set.SleepInterval)
 	defer Close()
 
 	quit := signals()
