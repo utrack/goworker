@@ -151,5 +151,11 @@ func (w *worker) run(job *job, workerFunc workerFunc) {
 		w.start(conn, job)
 		PutConn(conn)
 	}
+	ts := time.Now()
 	err = workerFunc(job.Queue, job.Payload.Args...)
+
+	// Report timings to metricFunc
+	if err == nil {
+		w.set.MetricFunc(job.Queue, time.Since(ts))
+	}
 }

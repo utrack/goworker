@@ -1,5 +1,7 @@
 package goworker
 
+import "time"
+
 type PoolPrefs struct {
 	// Queues is a list of Resque queues to scan.
 	Queues []string
@@ -26,4 +28,7 @@ type PoolPrefs struct {
 
 	// UseNumber shows if json.Number should be used instead of float64.
 	UseNumber bool
+
+	// MetricFunc can be used to report each queue's timings somewhere.
+	MetricFunc func(queue string, timeElapsed time.Duration)
 }
