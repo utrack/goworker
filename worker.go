@@ -155,7 +155,5 @@ func (w *worker) run(job *job, workerFunc workerFunc) {
 	err = workerFunc(job.Queue, job.Payload.Args...)
 
 	// Report timings to metricFunc
-	if err == nil {
-		w.set.MetricFunc(job.Queue, time.Since(ts))
-	}
+	w.set.MetricFunc(job.Queue, time.Since(ts), err)
 }

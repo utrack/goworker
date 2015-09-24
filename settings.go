@@ -30,5 +30,5 @@ type PoolPrefs struct {
 	UseNumber bool
 
 	// MetricFunc can be used to report each queue's timings somewhere.
-	MetricFunc func(queue string, timeElapsed time.Duration)
+	MetricFunc func(queue string, timeElapsed time.Duration, err error)
 }
