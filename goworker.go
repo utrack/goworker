@@ -21,14 +21,14 @@ var (
 // called by the Work function, but may be used by programs
 // that wish to access goworker functions and configuration
 // without actually processing jobs.
-func Init(set PoolPrefs) error {
+func Init(set *PoolPrefs) error {
 	var err error
 	logger, err = seelog.LoggerFromWriterWithMinLevel(os.Stdout, seelog.InfoLvl)
 	if err != nil {
 		return err
 	}
 
-	setDefaults(&set)
+	setDefaults(set)
 	ctx = context.Background()
 
 	pool = newRedisPool(set.Redis, set.MaxConns, set.MaxConns, time.Minute)
@@ -109,7 +109,7 @@ func Close() {
 // received, or until the queues are empty if the
 // -exit-on-complete flag is set.
 func Work(set PoolPrefs) error {
-	err := Init(set)
+	err := Init(&set)
 	if err != nil {
 		return err
 	}
