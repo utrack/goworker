@@ -11,7 +11,7 @@ type PoolPrefs struct {
 	IsStrict bool
 
 	// SleepInterval is an interval between scans when no jobs are found.
-	SleepInterval float64
+	SleepInterval time.Duration
 	// Concurrency is a max number of concurrently executing jobs.
 	Concurrency int
 

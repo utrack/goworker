@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/cihub/seelog"
 	"github.com/youtube/vitess/go/pools"
 	"golang.org/x/net/context"
@@ -53,7 +54,7 @@ func setDefaults(sets *PoolPrefs) {
 		sets.RedisNamespace = "resque:"
 	}
 	if sets.SleepInterval == 0 {
-		sets.SleepInterval = 5.0
+		sets.SleepInterval = time.Second * 5
 	}
 
 	// Add registered queues to the list.
@@ -113,6 +114,7 @@ func Work(set PoolPrefs) error {
 	if err != nil {
 		return err
 	}
+	logrus.Info(set.SleepInterval)
 	defer Close()
 
 	quit := signals()
